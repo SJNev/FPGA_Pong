@@ -1,0 +1,674 @@
+module FinalProject_Pong(CLK_50, VGA_R, VGA_B, VGA_G, VGA_HS, VGA_VS, VGA_SYNC_N, VGA_BLANK_N, VGA_CLK, rst, Button0,Button1,Button2,Button3,P1_Score,P2_Score);
+
+	output [7:0] VGA_R, VGA_B, VGA_G;
+	output VGA_HS, VGA_VS, VGA_BLANK_N, VGA_CLK, VGA_SYNC_N;
+	input Button0, Button1, Button2, Button3;
+	input CLK_50, rst;
+	output [4:0] P1_Score, P2_Score;
+	/*output debugLED, debugLED2;
+	reg debugLED, debugLED2;*/
+
+	wire [30:0]X, Y;
+	reg [31:0]P1In, P2In;
+	reg [31:0]ballX,ballY;
+	wire WireButton0, WireButton1, WireButton2, WireButton3;
+	wire CLK108;
+
+	reg [4:0]P1_Score = 5'd0;
+	reg [4:0]P2_Score = 5'd0;
+	reg redDisp;
+	reg outRight=0;
+	reg outLeft=0;
+	reg ballOut = 0;
+	reg point_P1,point_P2;
+	reg P1_Disp, P2_Disp;
+	reg rst_score = 1;
+	 
+	assign WireButton0 = Button0;
+	assign WireButton1 = Button1;
+	assign WireButton2 = Button2;
+	assign WireButton3 = Button3;
+	 
+	 
+	//paddle 1's parameters
+	localparam P1_L=31'd200;
+	localparam P1_R=31'd225;
+	localparam P1_T=31'd75; //P1In
+	localparam P1_B=31'd200+P1_T; //P1In
+	assign Paddle1=((X>=P1_L)&&(X<=P1_R)&&(Y>=(P1_T+P1In))&&(Y<=(P1_B+P1In)));
+	 
+	localparam P2_L=31'd1125;
+	localparam P2_R=31'd1150;
+	localparam P2_T=31'd75;
+	localparam P2_B=31'd200+P2_T;
+	assign Paddle2=((X>=P2_L)&&(X<=P2_R)&&(Y>=(P2_T+P2In))&&(Y<=(P2_B+P2In)));
+	 
+	localparam Ball_L = 31'd100;
+	localparam Ball_R = Ball_L+31'd20;
+	localparam Ball_T = 31'd75;
+	localparam Ball_B = Ball_T+31'd20;
+	assign Ball=((X>=Ball_L+ballX)&&(X<=Ball_R+ballX) && Y>=(Ball_T+ballY) && Y<=(Ball_B+ballY));
+	reg ballDirectionX=1;
+	reg ballDirectionY=1;
+					
+	localparam P1_aT = 31'd600;
+	localparam P1_aB = 31'd610;
+	localparam P1_aL = 31'd510;
+	localparam P1_aR = 31'd590;
+		
+	localparam P1_bL = 31'd590;
+	localparam P1_bR = 31'd600;
+	localparam P1_bT = 31'd610;
+	localparam P1_bB = 31'd690;
+		
+	localparam P1_cL = 31'd590;
+	localparam P1_cR = 31'd600;
+	localparam P1_cT = 31'd701;
+	localparam P1_cB = 31'd780;
+		
+	localparam P1_dT = 31'd780;
+	localparam P1_dB = 31'd790;
+	localparam P1_dL = 31'd510;
+	localparam P1_dR = 31'd590;
+		
+	localparam P1_eL = 31'd500;
+	localparam P1_eR = 31'd510;
+	localparam P1_eT = 31'd701;
+	localparam P1_eB = 31'd780;
+		
+	localparam P1_fL = 31'd500;
+	localparam P1_fR = 31'd510;
+	localparam P1_fT = 31'd610;
+	localparam P1_fB = 31'd690;
+		
+	localparam P1_gT = 31'd690;
+	localparam P1_gB = 31'd699;
+	localparam P1_gL = 31'd510;
+	localparam P1_gR = 31'd590;
+		
+	localparam P2_aT = P1_aT;
+	localparam P2_aB = P1_aB;
+	localparam P2_aL = P1_aL+31'd150;
+	localparam P2_aR = P1_aR+31'd150;
+		
+	localparam P2_bL = P1_bL+31'd150;
+	localparam P2_bR = P1_bR+31'd150;
+	localparam P2_bT = P1_bT;
+	localparam P2_bB = P1_bB;
+		
+	localparam P2_cL = P1_cL+31'd150;
+	localparam P2_cR = P1_cR+31'd150;
+	localparam P2_cT = P1_cT;
+	localparam P2_cB = P1_cB;
+		
+	localparam P2_dT = P1_dT;
+	localparam P2_dB = P1_dB;
+	localparam P2_dL = P1_dL+31'd150;
+	localparam P2_dR = P1_dR+31'd150;
+		
+	localparam P2_eL = P1_eL+31'd150;
+	localparam P2_eR = P1_eR+31'd150;
+	localparam P2_eT = P1_eT;
+	localparam P2_eB = P1_eB;
+		
+	localparam P2_fL = P1_fL+31'd150;
+	localparam P2_fR = P1_fR+31'd150;
+	localparam P2_fT = P1_fT;
+	localparam P2_fB = P1_fB;
+		
+	localparam P2_gT = P1_gT;
+	localparam P2_gB = P1_gB;
+	localparam P2_gL = P1_gL+31'd150;
+	localparam P2_gR = P1_gR+31'd150;
+		
+	//for some reason, if any paramater in the y-direction includes 31'd700 the screen won't display, hence the use of 699 and 701
+
+	assign P1_a = ((X>=P1_aL)&&(X<=P1_aR)&&(Y>=P1_aT)&&(Y<=P1_aB));
+	assign P1_b = ((X>=P1_bL)&&(X<=P1_bR)&&(Y>=P1_bT)&&(Y<=P1_bB));
+	assign P1_c = ((X>=P1_cL)&&(X<=P1_cR)&&(Y>=P1_cT)&&(Y<=P1_cB));
+	assign P1_d = ((X>=P1_dL)&&(X<=P1_dR)&&(Y>=P1_dT)&&(Y<=P1_dB));
+	assign P1_e = ((X>=P1_eL)&&(X<=P1_eR)&&(Y>=P1_eT)&&(Y<=P1_eB));
+	assign P1_f = ((X>=P1_fL)&&(X<=P1_fR)&&(Y>=P1_fT)&&(Y<=P1_fB));
+	assign P1_g = ((X>=P1_gL)&&(X<=P1_gR)&&(Y>=P1_gT)&&(Y<=P1_gB));
+		
+	assign P2_a = ((X>=P2_aL)&&(X<=P2_aR)&&(Y>=P2_aT)&&(Y<=P2_aB));
+	assign P2_b = ((X>=P2_bL)&&(X<=P2_bR)&&(Y>=P2_bT)&&(Y<=P2_bB));
+	assign P2_c = ((X>=P2_cL)&&(X<=P2_cR)&&(Y>=P2_cT)&&(Y<=P2_cB));
+	assign P2_d = ((X>=P2_dL)&&(X<=P2_dR)&&(Y>=P2_dT)&&(Y<=P2_dB));
+	assign P2_e = ((X>=P2_eL)&&(X<=P2_eR)&&(Y>=P2_eT)&&(Y<=P2_eB));
+	assign P2_f = ((X>=P2_fL)&&(X<=P2_fR)&&(Y>=P2_fT)&&(Y<=P2_fB));
+	assign P2_g = ((X>=P2_gL)&&(X<=P2_gR)&&(Y>=P2_gT)&&(Y<=P2_gB));
+		
+	/*always @(posedge CLK_108)
+	begin
+		if (P2_Score==5'd0)
+			begin
+			debugLED <= 1'b1;
+			debugLED2 <= 1'b0;
+			end
+		else if (P2_Score==5'd1)
+			begin
+			debugLED <= 1'b0;
+			debugLED2 <= 1'b1;
+			end
+		else
+			begin
+			debugLED <= 1'b0;
+			debugLED2 <= 1'b0;
+			end
+	end*/
+		
+		
+	always@(posedge CLK_50)
+	begin	
+		if (P1_Score==5'd0|P1_Score==5'd2|P1_Score==5'd4|P1_Score==5'd6|P1_Score==5'd8|P1_Score==5'd10|P1_Score==5'd12|P1_Score==5'd14|P1_Score==5'd16|P1_Score==5'd18|P1_Score==5'd20)
+			case(P1_Score)
+				5'd0:
+					begin
+					P1_Disp <= (P1_a||P1_b||P1_c||P1_d||P1_e||P1_f);
+					rst_score <= 1'b0;
+					end
+				5'd2:
+					P1_Disp <= (P1_b||P1_c);
+				5'd4:
+					P1_Disp <= (P1_a||P1_b||P1_d||P1_e||P1_g);
+				5'd6:
+					P1_Disp <= (P1_a||P1_b||P1_c||P1_d||P1_g);
+				5'd8:
+					P1_Disp <= (P1_b||P1_c||P1_f||P1_g);
+				5'd10:
+					P1_Disp <= (P1_a||P1_c||P1_d||P1_f||P1_g);
+				5'd12:
+					P1_Disp <= (P1_a||P1_c||P1_d||P1_e||P1_f||P1_g);
+				5'd14:
+					P1_Disp <= (P1_a||P1_b||P1_c);
+				5'd16:
+					P1_Disp <= (P1_a||P1_b||P1_c||P1_d||P1_e||P1_f||P1_g);
+				5'd18:
+					P1_Disp <= (P1_a||P1_b||P1_c||P1_d||P1_f||P1_g);
+				5'd20:
+					rst_score <= 1'b1;
+				default:
+					P1_Disp <= (P1_a||P1_b||P1_c||P1_d||P1_e||P1_f);
+			endcase
+		else
+			begin
+			P1_Disp <= (P1_a||P1_b||P1_c||P1_d||P1_e||P1_f);
+			end
+		if (P2_Score==5'd0|P2_Score==5'd2|P2_Score==5'd4|P2_Score==5'd6|P2_Score==5'd8|P2_Score==5'd10)
+			case(P2_Score)
+				5'd0:
+					begin
+					P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_e||P2_f);
+					rst_score <= 1'b0;
+					end
+				5'd2:
+					P2_Disp <= (P2_b||P2_c);
+				5'd4:
+					//P2_Disp <= (P2_a||P2_b||P2_d||P2_e||P2_g);
+					P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_g);
+				5'd6:
+					//P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_g);
+					P2_Disp <= (P2_a||P2_c||P2_d||P2_f||P2_g);
+				5'd8:
+					//P2_Disp <= (P2_b||P2_c||P2_f||P2_g);
+					P2_Disp <= (P2_a||P2_b||P2_c);
+				5'd10:
+					//P2_Disp <= (P2_a||P2_c||P2_d||P2_f||P2_g);
+					P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_f||P2_g);
+				default:
+					P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_e||P2_f);
+			endcase
+		else if (P2_Score==5'd1|P2_Score==5'd3|P2_Score==5'd5|P2_Score==5'd7|P2_Score==5'd9|P2_Score==5'd11)
+				begin
+				case(P2_Score)
+					5'd1:
+						begin
+						P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_e||P2_f);
+						rst_score <= 1'b0;
+						end
+					5'd3:
+						//P2_Disp <= (P2_b||P2_c);
+						P2_Disp <= (P2_a||P2_b||P2_d||P2_e||P2_g);
+					5'd5:
+						//P2_Disp <= (P2_a||P2_b||P2_d||P2_e||P2_g);
+						P2_Disp <= (P2_b||P2_c||P2_f||P2_g);
+					5'd7:
+						//P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_g);
+						P2_Disp <= (P2_a||P2_c||P2_d||P2_e||P2_f||P2_g);
+					5'd9:
+						//P2_Disp <= (P2_b||P2_c||P2_f||P2_g);
+						P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_e||P2_f||P2_g);
+					5'd11:
+						//P2_Disp <= (P2_a||P2_c||P2_d||P2_f||P2_g);
+						rst_score <= 1'b1;
+					default:
+						P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_e||P2_f);
+				endcase
+				end
+		else
+			begin
+			P2_Disp <= (P2_a||P2_b||P2_c||P2_d||P2_e||P2_f);
+			end
+	end
+			 
+   clock108(rst, CLK_50, CLK_108, locked);
+
+   wire hblank, vblank, clkLine, blank;
+
+   H_SYNC(CLK_108, VGA_HS, hblank, clkLine, X);
+   V_SYNC(clkLine, VGA_VS, vblank, Y);
+	 
+	always@(*)
+		begin 
+			if(Paddle1|Paddle2|Ball|P1_Disp|P2_Disp)
+				redDisp = 1'b0;
+			else
+				redDisp = 1'b1;
+		end
+	
+	reg [31:0] count;
+	reg temp;
+	
+	
+	always@(posedge CLK_50)
+	begin
+		if(rst_score == 1'b1)
+			begin
+			P1_Score <= 5'd0;
+			P2_Score <= 5'd0;
+			end
+		else 
+			begin
+			temp <= temp;
+			end
+		if (count >=32'd200000)
+			count <=0;
+		else
+			count<=count+1;
+		//Paddle1
+		if (WireButton0==1'b0 && count==32'd200000) 
+			P1In<=P1In+32'd1;
+		else
+			temp<=temp;
+		if (WireButton1==1'b0 && count==32'd200000)
+			P1In<=P1In-32'd1;
+		else
+			temp<=temp;
+		if (P1In>32'd700)
+			P1In<=32'd700;
+		else
+			temp<=temp;
+		if (P1In<32'd25)
+			P1In<=32'd25;
+		else
+			temp<=temp;
+		//Paddle2
+		if (WireButton2==1'b0 && count==32'd200000)
+			P2In<=P2In+32'd1;
+		else
+			temp<=temp;
+		if (WireButton3==1'b0 && count==32'd200000)
+			P2In<=P2In-32'd1;
+		else
+			temp<=temp;
+		if (P2In>32'd700)
+			P2In<=32'd700;
+		else
+			temp<=temp;
+		if (P2In<32'd25)
+			P2In<=32'd25;
+		else
+			temp<=temp;
+		//Ball
+		if (count==32'd200000)
+			begin
+				if (ballOut && WireButton0 && WireButton1 && WireButton2 && WireButton3)
+					begin	//starting position
+						ballX<=32'd550;
+						P1In<=32'd300;
+						P2In<=32'd300;
+						point_P1<=1'b0;
+						point_P2<=1'b0;
+					end
+				else if (ballDirectionX)
+					begin	//move right
+						ballX<=ballX+1;
+						ballOut<=0;
+					end
+				else
+					begin	//move left
+						ballX<=ballX-1;
+						ballOut<=0;
+					end
+				
+				if (outRight && WireButton0 && WireButton1 && WireButton2 && WireButton3)
+					begin
+					P1_Score <= P1_Score + 5'd1;
+					end
+				else if (outLeft && WireButton0 && WireButton1 && WireButton2 && WireButton3)
+					begin
+					P2_Score <= P2_Score + 5'd1;
+					end
+				else
+					temp <= temp;
+				if (count == 32'd200000)	//this sets outRight to zero for each cycle so score doesn't keep incrementing
+					begin
+					outRight<=0;
+					outLeft<=0;
+					end
+				else
+					temp <= temp;
+
+				if(ballX>=32'd1005 &&((P2In) <=(ballY +32'd10)) && (P2In +32'd200)>=(ballY +32'd10) && ~ballOut)
+					begin
+							ballX<=32'd1004;
+							ballDirectionX <=1'b0;
+					end
+				else if(ballX >= 32'd1005)
+					begin
+						ballOut<=1;
+						outRight<=1;
+					end
+				else
+					temp<=temp;
+
+				if(ballOut)
+					temp<=temp;
+				else if(ballX<=31'd125 && ((P1In)<=(ballY+31'd10)) &&(P1In+31'd200)>=(ballY+31'd10) && ~ballOut)
+					begin
+						ballX<=31'd126;
+						ballDirectionX<=1'b1;
+					end
+				else if(ballX<=31'd125)
+					begin
+						ballOut<=1;
+						outLeft<=1;
+					end
+				else
+							temp<=temp;
+				//y-direction for the ball 
+				if(ballOut && WireButton0 && WireButton1 && WireButton2 && WireButton3)
+					begin
+						ballY<=31'd400;
+					end
+            else if(ballDirectionY)
+					begin
+						ballY<=ballY+1;	
+					end
+					else
+					begin
+						ballY<=ballY-1;
+					end
+				if(ballY>=31'd800)
+					begin
+						ballY<=31'd799;
+						ballDirectionY<=1'b0;
+					end
+				else
+					temp<=temp;
+				if(ballY<=31'd50)
+					begin
+						ballY<=31'd51;
+						ballDirectionY<=1;
+					end
+				else
+					temp<=temp;
+			end
+		else 
+			temp<=temp;
+end
+
+	 
+    color(rst, VGA_R, VGA_B, VGA_G, Paddle2, Ball, P1_Disp, P2_Disp, redDisp, ballOut );
+
+    assign VGA_CLK = CLK_108;
+    assign VGA_BLANK_N = VGA_VS&VGA_HS;
+    assign VGA_SYNC_N = 1'b0;
+
+endmodule  
+					
+module color(rst, red, blue, green, Paddle2, Ball, P1_Disp, P2_Disp, redDisp, ballOut );
+
+    input rst, redDisp;
+	 input Paddle2, Ball, P1_Disp, P2_Disp, ballOut;
+    output [7:0] red, blue, green;
+	 reg[7:0] red,green,blue;
+
+	 
+	 reg [31:0]ballX,ballY;
+	 reg [31:0] P2In;
+
+	 wire [30:0]X, Y;
+
+	 always@(*)
+	 
+			begin 
+				if(redDisp == 1'b1)
+						begin
+							red = 8'd255;
+							blue = 8'd0;
+							green = 8'd0;
+						end
+						else
+						begin
+							red = 8'd0;
+							blue = 8'd0;
+							green = 8'd255;
+						end
+			end
+endmodule
+
+module H_SYNC(clk, hout, bout, newLine,Xcount);
+
+    input clk;
+    output hout, bout, newLine;
+	 output [31:0]Xcount;
+
+    reg [31:0] count = 32'd0;
+    reg hsync, blank, new;
+
+    always @(posedge clk) begin
+        if (count <  1688)
+            count <= Xcount + 1;
+        else 
+            count <= 0;
+    end 
+
+    always @(*) begin
+        if (count == 0)
+            new = 1;
+        else
+            new = 0;
+    end 
+
+    always @(*) begin
+        if (count > 1279) 
+            blank = 1;
+        else 
+            blank = 0;
+    end
+
+    always @(*) begin
+        if (count < 1328)
+            hsync = 1;
+        else if (count > 1327 && count < 1440)
+            hsync = 0;
+        else    
+            hsync = 1;
+        end
+
+    assign hout = hsync;
+    assign bout = blank;
+    assign newLine = new;
+	 assign Xcount = count;
+
+endmodule
+
+module V_SYNC(clk, vout, bout, Ycount);
+
+    input clk;
+    output vout, bout;
+	 output [31:0] Ycount;
+
+    reg [31:0] count = 32'd0;
+    reg vsync, blank;
+
+    always @(posedge clk) begin
+        if (count <  1066)
+            count <= Ycount + 1;
+        else 
+            count <= 0;
+    end 
+
+    always @(*) begin
+        if (count < 1024) 
+            blank = 1;
+        else 
+            blank = 0;
+    end
+
+    always @(*) begin
+        if (count < 1025)
+            vsync = 1;
+        else if (count > 1024 && count < 1028)
+            vsync = 0;
+        else    
+            vsync = 1;
+        end
+
+    assign vout = vsync;
+    assign bout = blank;
+	 assign Ycount = count ;
+
+endmodule
+
+
+ //synopsys translate_off
+`timescale 1 ps / 1 ps
+ //synopsys translate_on
+module clock108 (areset, inclk0, c0, locked);
+
+    input     areset;
+    input     inclk0;
+    output    c0;
+    output    locked;
+
+`ifndef ALTERA_RESERVED_QIS
+ //synopsys translate_off
+`endif
+
+tri0      areset;
+
+`ifndef ALTERA_RESERVED_QIS
+ //synopsys translate_on
+`endif
+
+    wire [0:0] sub_wire2 = 1'h0;
+    wire [4:0] sub_wire3;
+    wire  sub_wire5;
+    wire  sub_wire0 = inclk0;
+    wire [1:0] sub_wire1 = {sub_wire2, sub_wire0};
+    wire [0:0] sub_wire4 = sub_wire3[0:0];
+    wire  c0 = sub_wire4;
+    wire  locked = sub_wire5;
+
+	 
+	 
+altpll  altpll_component (
+            .areset (areset),
+            .inclk (sub_wire1),
+            .clk (sub_wire3),
+            .locked (sub_wire5),
+            .activeclock (),
+            .clkbad (),
+            .clkena ({6{1'b1}}),
+            .clkloss (),
+            .clkswitch (1'b0),
+            .configupdate (1'b0),
+            .enable0 (),
+            .enable1 (),
+            .extclk (),
+            .extclkena ({4{1'b1}}),
+            .fbin (1'b1),
+            .fbmimicbidir (),
+            .fbout (),
+            .fref (),
+            .icdrclk (),
+            .pfdena (1'b1),
+            .phasecounterselect ({4{1'b1}}),
+            .phasedone (),
+            .phasestep (1'b1),
+            .phaseupdown (1'b1),
+            .pllena (1'b1),
+            .scanaclr (1'b0),
+            .scanclk (1'b0),
+            .scanclkena (1'b1),
+            .scandata (1'b0),
+            .scandataout (),
+            .scandone (),
+            .scanread (1'b0),
+            .scanwrite (1'b0),
+            .sclkout0 (),
+            .sclkout1 (),
+            .vcooverrange (),
+            .vcounderrange ());
+defparam
+    altpll_component.bandwidth_type = "AUTO",
+    altpll_component.clk0_divide_by = 25,
+    altpll_component.clk0_duty_cycle = 50,
+    altpll_component.clk0_multiply_by = 54,
+    altpll_component.clk0_phase_shift = "0",
+    altpll_component.compensate_clock = "CLK0",
+    altpll_component.inclk0_input_frequency = 20000,
+    altpll_component.intended_device_family = "Cyclone IV E",
+    altpll_component.lpm_hint = "CBX_MODULE_PREFIX=clock108",
+    altpll_component.lpm_type = "altpll",
+    altpll_component.operation_mode = "NORMAL",
+    altpll_component.pll_type = "AUTO",
+    altpll_component.port_activeclock = "PORT_UNUSED",
+    altpll_component.port_areset = "PORT_USED",
+    altpll_component.port_clkbad0 = "PORT_UNUSED",
+    altpll_component.port_clkbad1 = "PORT_UNUSED",
+    altpll_component.port_clkloss = "PORT_UNUSED",
+    altpll_component.port_clkswitch = "PORT_UNUSED",
+    altpll_component.port_configupdate = "PORT_UNUSED",
+    altpll_component.port_fbin = "PORT_UNUSED",
+    altpll_component.port_inclk0 = "PORT_USED",
+    altpll_component.port_inclk1 = "PORT_UNUSED",
+    altpll_component.port_locked = "PORT_USED",
+    altpll_component.port_pfdena = "PORT_UNUSED",
+    altpll_component.port_phasecounterselect = "PORT_UNUSED",
+    altpll_component.port_phasedone = "PORT_UNUSED",
+    altpll_component.port_phasestep = "PORT_UNUSED",
+    altpll_component.port_phaseupdown = "PORT_UNUSED",
+    altpll_component.port_pllena = "PORT_UNUSED",
+    altpll_component.port_scanaclr = "PORT_UNUSED",
+    altpll_component.port_scanclk = "PORT_UNUSED",
+    altpll_component.port_scanclkena = "PORT_UNUSED",
+    altpll_component.port_scandata = "PORT_UNUSED",
+    altpll_component.port_scandataout = "PORT_UNUSED",
+    altpll_component.port_scandone = "PORT_UNUSED",
+    altpll_component.port_scanread = "PORT_UNUSED",
+    altpll_component.port_scanwrite = "PORT_UNUSED",
+    altpll_component.port_clk0 = "PORT_USED",
+    altpll_component.port_clk1 = "PORT_UNUSED",
+    altpll_component.port_clk2 = "PORT_UNUSED",
+    altpll_component.port_clk3 = "PORT_UNUSED",
+    altpll_component.port_clk4 = "PORT_UNUSED",
+    altpll_component.port_clk5 = "PORT_UNUSED",
+    altpll_component.port_clkena0 = "PORT_UNUSED",
+    altpll_component.port_clkena1 = "PORT_UNUSED",
+    altpll_component.port_clkena2 = "PORT_UNUSED",
+    altpll_component.port_clkena3 = "PORT_UNUSED",
+    altpll_component.port_clkena4 = "PORT_UNUSED",
+    altpll_component.port_clkena5 = "PORT_UNUSED",
+    altpll_component.port_extclk0 = "PORT_UNUSED",
+    altpll_component.port_extclk1 = "PORT_UNUSED",
+    altpll_component.port_extclk2 = "PORT_UNUSED",
+    altpll_component.port_extclk3 = "PORT_UNUSED",
+    altpll_component.self_reset_on_loss_lock = "OFF",
+    altpll_component.width_clock = 5;
+
+
+endmodule
