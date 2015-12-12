@@ -30,6 +30,10 @@ module FinalProject_Pong(CLK_50, VGA_R, VGA_B, VGA_G, VGA_HS, VGA_VS, VGA_SYNC_N
 	assign WireButton3 = Button3;
 	 
 	 
+	/*The assignments for the position of the paddles and ball were inspired by code from two former ECE 287 students
+	(https://code.google.com/p/fpga-pong/source/browse/keyboard+interacts+visuals)*/
+	
+	 
 	//paddle 1's parameters
 	localparam P1_L=31'd200;
 	localparam P1_R=31'd225;
