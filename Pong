@@ -459,6 +459,11 @@ module color(rst, red, blue, green, Paddle2, Ball, P1_Disp, P2_Disp, redDisp, ba
 			end
 endmodule
 
+
+/*Our H_SYNC and V_SYNC modules come from hallbe4's page "Getting the VGA to Work"
+(https://github.com/hallbe4/Chutes_And_Ladders/wiki/Getting-The-VGA-To-Work)*/
+
+
 module H_SYNC(clk, hout, bout, newLine,Xcount);
 
     input clk;
